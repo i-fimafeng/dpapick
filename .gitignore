@@ -1,0 +1,19 @@
+# Build directories
+build
+dist
+*.egg-info
+.eggs
+
+# Test files
+.pytest_cache
+.tox
+
+# Compiled file
+*.pyc
+*.egg
+
+# Pipenv
+Pipfile.lock
+
+# IDE
+.vscode

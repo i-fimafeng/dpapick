@@ -20,20 +20,21 @@
 import unittest
 from DPAPI.Core import credhist
 import struct
-
+import binascii
 
 class RPC_SIDTest(unittest.TestCase):
     def test_parse(self):
-        self.assertRaises(struct.error, credhist.RPC_SID, "")
-        r = credhist.RPC_SID("\x00" * 10)
+        self.assertRaises(struct.error, credhist.RPC_SID, b"")
+        r = credhist.RPC_SID(b"\x00" * 10)
         self.assertEquals(r.version, 0)
         self.assertEquals(r.idAuth, 0)
         self.assertEquals(len(r.subAuth), 0)
 
     def test_string(self):
-        r = credhist.RPC_SID("\x00" * 10)
+        r = credhist.RPC_SID(b"\x00" * 10)
         self.assertEquals(str(r), "S-0-0")
-        r = credhist.RPC_SID("01050123456789AB010000000200000003000000040000000500000006000000".decode("hex"))
+        r = credhist.RPC_SID(binascii.unhexlify(
+            "01050123456789AB010000000200000003000000040000000500000006000000"))
         self.assertEquals(r.version, 1)
         self.assertEquals(r.idAuth, 0x0123456789AB)
         self.assertEquals(len(r.subAuth), 5)
@@ -43,11 +44,11 @@ class RPC_SIDTest(unittest.TestCase):
 
 class CredSystemTest(unittest.TestCase):
     def test_parse(self):
-        self.assertRaises(struct.error, credhist.CredSystem, "")
-        c = credhist.CredSystem("\x01\x00\x00\x00" + "a" * 20 + "b" * 20)
+        self.assertRaises(struct.error, credhist.CredSystem, b"")
+        c = credhist.CredSystem(b"\x01\x00\x00\x00" + b"a" * 20 + b"b" * 20)
         self.assertEquals(c.revision, 1)
-        self.assertEquals(c.machine, "a" * 20)
-        self.assertEquals(c.user, "b" * 20)
+        self.assertEquals(c.machine, b"a" * 20)
+        self.assertEquals(c.user, b"b" * 20)
 
 
 class CredhistEntryTest(unittest.TestCase):
@@ -57,7 +58,7 @@ class CredhistEntryTest(unittest.TestCase):
 
 class CredHistFileTest(unittest.TestCase):
     def setUp(self):
-        self.credhist = ("01000000b7335635e31e464a8e93c099"
+        self.credhist = binascii.unhexlify("01000000b7335635e31e464a8e93c099"
                          "8e062938000000000100000009800000"
                          "a00f00001c0000000366000014000000"
                          "140000004d92b9fdaa9a3c5958e48419"
@@ -92,13 +93,13 @@ class CredHistFileTest(unittest.TestCase):
                          "ee87eb7fd6b02988f65624f16a77733d"
                          "7e9c7b43992671cd4a8bb50151ed3657"
                          "010000008c0cc86717255245ba9544f8"
-                         "8914bc1388000000".decode("hex"))
+                         "8914bc1388000000")
 
     def test_parse(self):
         c = credhist.CredHistFile(self.credhist)
         self.assertEquals(c.curr_guid, "355633b7-1ee3-4a46-8e93-c0998e62938")
         self.assertEquals(len(c.entries.items()), 4)
-        g, i = c.entries.items()[0]
+        g, i = sorted(list(c.entries.items()))[2]
         self.assertEquals(i.revision, 1)
         self.assertEquals(i.hashAlgo.algnum, 0x8009)
         self.assertEquals(i.rounds, 4000)
@@ -108,7 +109,7 @@ class CredHistFileTest(unittest.TestCase):
         self.assertEquals(str(i.userSID), "S-1-5-21-583907252-1547161642-682003330-1001")
         self.assertEquals(i.guid, g)
         self.assertEquals(len(i.iv), 16)
-        self.assertEquals(i.iv, "453685f445507b7cbc3d6f7bc7a942a8".decode("hex"))
+        self.assertEquals(binascii.hexlify(i.iv), b"453685f445507b7cbc3d6f7bc7a942a8")
 
 
 

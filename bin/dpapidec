@@ -45,7 +45,7 @@ if __name__ == "__main__":
     for b in args:
         blob = blob.DPAPIBlob(open(b, 'rb').read())
 
-        print "BLOB GUID=%r" % blob.guids
+        print("BLOB GUID=%r" % blob.guids)
         for key_guid in blob.guids:
 
             mks = mkp.getMasterKeys(key_guid)
@@ -55,8 +55,8 @@ if __name__ == "__main__":
             print >> sys.stderr, "Master key not found for blob %s (guid=%r)" % (b, blob.guids)
             continue
 
-        print "Found %i keys:" % len(mks)
-        print "Attempting to unlock with password:"
+        print("Found %i keys:" % len(mks))
+        print("Attempting to unlock with password:")
         for mk in mks:
             mk.decryptWithPassword(options.sid, options.password)
             if mk.decrypted:
@@ -65,23 +65,23 @@ if __name__ == "__main__":
             for mk in mks:
                 credent = chf.entries.get(mk.credhist.guid)
                 if credent is not None:
-                    print "--- cred entry matching:", mk.credhist.guid
-                    print repr(credent)
+                    print("--- cred entry matching:", mk.credhist.guid)
+                    print(repr(credent))
                     if credent.pwdhash is None:
-                        print "Alas, cred entry was not decrypted"
+                        print("Alas, cred entry was not decrypted")
                     else:
                         break
             else:
                 print >> sys.stderr, "No credentials found to decrypt masterkeys"
                 continue
 
-            print "Attempt to decrypt masterkey:"
+            print("Attempt to decrypt masterkey:")
             mk.decryptWithHash(str(credent.userSID), credent.pwdhash)
 
-        print repr(mk)
+        print(repr(mk))
 
-        print "Attempt to decrypt blob:"
+        print("Attempt to decrypt blob:")
         blob.decrypt(mk.get_key(), options.entropy, options.strongpwd)
-        print repr(blob)
+        print(repr(blob))
 
 # vim:ts=4:expandtab:sw=4

@@ -39,6 +39,8 @@ setup(
         'python-registry>=1.0.4',
         'pyasn1>=0.1.7',
         'CFPropertyList',
+        'future',
+        'six',
     ],
     classifiers=[
         "Development Status :: 4 - Beta",

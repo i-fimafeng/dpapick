@@ -17,6 +17,8 @@
 ##                                                                         ##
 #############################################################################
 
+import binascii
+
 import M2Crypto
 from DPAPI.Core import crypto
 from DPAPI.Core import eater
@@ -95,7 +97,7 @@ class DPAPIBlob(eater.DataStruct):
                 sessionkey = algo(masterkey, self.salt, self.hashAlgo, entropy=entropy, strongPassword=strongPassword)
                 key = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo)
                 cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, key[:self.cipherAlgo.keyLength],
-                                             "\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
+                                             b"\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
                 cipher.set_padding(1)
                 self.cleartext = cipher.update(self.cipherText) + cipher.final()
                 # check against provided HMAC

@@ -17,6 +17,9 @@
 ##                                                                         ##
 #############################################################################
 
+from builtins import bytes, range
+import binascii
+import six
 import hashlib
 import struct
 import array
@@ -51,10 +54,10 @@ class CryptoAlgo(object):
 
     name = property(lambda self: self.algo.name)
     m2name = property(lambda self: self.algo.m2)
-    keyLength = property(lambda self: self.algo.keyLength / 8)
-    ivLength = property(lambda self: self.algo.IVLength / 8)
-    blockSize = property(lambda self: self.algo.blockLength / 8)
-    digestLength = property(lambda self: self.algo.digestLength / 8)
+    keyLength = property(lambda self: self.algo.keyLength // 8)
+    ivLength = property(lambda self: self.algo.IVLength // 8)
+    blockSize = property(lambda self: self.algo.blockLength // 8)
+    digestLength = property(lambda self: self.algo.digestLength // 8)
 
     def do_fixup_key(self, key):
         try:
@@ -131,9 +134,9 @@ def CryptSessionKeyXP(masterkey, nonce, hashAlgo, entropy=None, strongPassword=N
     if len(masterkey) > 20:
         masterkey = hashlib.sha1(masterkey).digest()
 
-    masterkey += "\x00" * hashAlgo.blockSize
-    ipad = "".join(chr(ord(masterkey[i]) ^ 0x36) for i in range(hashAlgo.blockSize))
-    opad = "".join(chr(ord(masterkey[i]) ^ 0x5c) for i in range(hashAlgo.blockSize))
+    masterkey += b"\x00" * hashAlgo.blockSize
+    ipad = bytes([i ^ 0x36 for i in bytes(masterkey[:hashAlgo.blockSize])])
+    opad = bytes([i ^ 0x5c for i in bytes(masterkey[:hashAlgo.blockSize])])
     digest = hashlib.new(hashAlgo.name)
     digest.update(ipad)
     digest.update(nonce)
@@ -180,9 +183,9 @@ def CryptDeriveKey(h, cipherAlgo, hashAlgo):
         h = hashlib.new(hashAlgo.name, h).digest()
     if len(h) >= cipherAlgo.keyLength:
         return h
-    h += "\x00" * hashAlgo.blockSize
-    ipad = "".join(chr(ord(h[i]) ^ 0x36) for i in range(hashAlgo.blockSize))
-    opad = "".join(chr(ord(h[i]) ^ 0x5c) for i in range(hashAlgo.blockSize))
+    h += b"\x00" * hashAlgo.blockSize
+    ipad = bytes([i ^ 0x36 for i in bytes(h[:hashAlgo.blockSize])])
+    opad = bytes([i ^ 0x5c for i in bytes(h[:hashAlgo.blockSize])])
     k = hashlib.new(hashAlgo.name, ipad).digest() + hashlib.new(hashAlgo.name, opad).digest()
     k = cipherAlgo.do_fixup_key(k)
     return k
@@ -192,20 +195,22 @@ def decrypt_lsa_key_nt5(lsakey, syskey):
     """This function decrypts the LSA key using the syskey"""
     dg = hashlib.md5()
     dg.update(syskey)
-    for i in xrange(1000):
+    for i in range(1000):
         dg.update(lsakey[60:76])
     arcfour = M2Crypto.RC4.RC4(dg.digest())
-    deskey = arcfour.update(lsakey[12:60]) + arcfour.final()
-    return [deskey[16 * x:16 * (x + 1)] for x in xrange(3)]
+    #                                        bug in M2Crypto (final return '' not b'')
+    #                                  Note: RC4 final is always empty. so it's useless
+    deskey = arcfour.update(lsakey[12:60]) + bytes(arcfour.final(), 'utf8')
+    return [deskey[16 * x:16 * (x + 1)] for x in range(3)]
 
 
 def decrypt_lsa_key_nt6(lsakey, syskey):
     """This function decrypts the LSA keys using the syskey"""
     dg = hashlib.sha256()
     dg.update(syskey)
-    for i in xrange(1000):
+    for i in range(1000):
         dg.update(lsakey[28:60])
-    c = M2Crypto.EVP.Cipher(alg="aes_256_ecb", key=dg.digest(), iv="", op=M2Crypto.decrypt)
+    c = M2Crypto.EVP.Cipher(alg="aes_256_ecb", key=dg.digest(), iv=b"", op=M2Crypto.decrypt)
     c.set_padding(0)
     keys = c.update(lsakey[60:]) + c.final()
     size = struct.unpack_from("<L", keys)[0]
@@ -214,7 +219,7 @@ def decrypt_lsa_key_nt6(lsakey, syskey):
     nb = struct.unpack("<L", keys[24:28])[0]
     off = 28
     kd = {}
-    for i in xrange(nb):
+    for i in range(nb):
         g = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % struct.unpack("<L2H8B", keys[off:off + 16])
         t, l = struct.unpack_from("<2L", keys[off + 16:])
         k = keys[off + 24:off + 24 + l]
@@ -228,24 +233,24 @@ def SystemFunction005(secret, key):
     Reproduces the corresponding Windows internal function.
     Taken from creddump project https://code.google.com/p/creddump/
     """
-    decrypted_data = ''
+    decrypted_data = b''
     j = 0
     algo = CryptoAlgo(0x6603)
     for i in range(0, len(secret), 8):
         enc_block = secret[i:i + 8]
         block_key = key[j:j + 7]
         des_key = []
-        des_key.append(ord(block_key[0]) >> 1)
-        des_key.append(((ord(block_key[0]) & 0x01) << 6) | (ord(block_key[1]) >> 2))
-        des_key.append(((ord(block_key[1]) & 0x03) << 5) | (ord(block_key[2]) >> 3))
-        des_key.append(((ord(block_key[2]) & 0x07) << 4) | (ord(block_key[3]) >> 4))
-        des_key.append(((ord(block_key[3]) & 0x0F) << 3) | (ord(block_key[4]) >> 5))
-        des_key.append(((ord(block_key[4]) & 0x1F) << 2) | (ord(block_key[5]) >> 6))
-        des_key.append(((ord(block_key[5]) & 0x3F) << 1) | (ord(block_key[6]) >> 7))
-        des_key.append(ord(block_key[6]) & 0x7F)
-        des_key = algo.do_fixup_key("".join([chr(x << 1) for x in des_key]))
+        des_key.append(six.indexbytes(block_key, 0) >> 1)
+        des_key.append(((six.indexbytes(block_key, 0) & 0x01) << 6) | (six.indexbytes(block_key, 1) >> 2))
+        des_key.append(((six.indexbytes(block_key, 1) & 0x03) << 5) | (six.indexbytes(block_key, 2) >> 3))
+        des_key.append(((six.indexbytes(block_key, 2) & 0x07) << 4) | (six.indexbytes(block_key, 3) >> 4))
+        des_key.append(((six.indexbytes(block_key, 3) & 0x0F) << 3) | (six.indexbytes(block_key, 4) >> 5))
+        des_key.append(((six.indexbytes(block_key, 4) & 0x1F) << 2) | (six.indexbytes(block_key, 5) >> 6))
+        des_key.append(((six.indexbytes(block_key, 5) & 0x3F) << 1) | (six.indexbytes(block_key, 6) >> 7))
+        des_key.append(six.indexbytes(block_key, 6) & 0x7F)
+        des_key = algo.do_fixup_key(b"".join([bytes([x << 1]) for x in des_key]))
 
-        cipher = M2Crypto.EVP.Cipher(alg="des_ecb", key=des_key, iv="", op=M2Crypto.decrypt)
+        cipher = M2Crypto.EVP.Cipher(alg="des_ecb", key=des_key, iv=b"", op=M2Crypto.decrypt)
         cipher.set_padding(0)
         decrypted_data += cipher.update(enc_block) + cipher.final()
         j += 7
@@ -263,9 +268,9 @@ def decrypt_lsa_secret(secret, lsa_keys):
     algo = struct.unpack("<L", secret[20:24])[0]
     dg = hashlib.sha256()
     dg.update(lsa_keys[keyid]["key"])
-    for i in xrange(1000):
+    for i in range(1000):
         dg.update(secret[28:60])
-    c = M2Crypto.EVP.Cipher(alg="aes_256_ecb", key=dg.digest(), iv="", op=M2Crypto.decrypt)
+    c = M2Crypto.EVP.Cipher(alg="aes_256_ecb", key=dg.digest(), iv=b"", op=M2Crypto.decrypt)
     c.set_padding(0)
     clear = c.update(secret[60:]) + c.final()
     size = struct.unpack_from("<L", clear)[0]
@@ -277,15 +282,17 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
 
     Returns the corresponding expanded key which is keylen long.
     """
-    buff = ""
+    buff = b""
     i = 1
     while len(buff) < keylen:
         U = salt + struct.pack("!L", i)
         i += 1
-        derived = M2Crypto.EVP.hmac(passphrase, U, digest)
-        for r in xrange(iterations - 1):
-            actual = M2Crypto.EVP.hmac(passphrase, derived, digest)
-            derived = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(derived, actual)])
+        derived = bytes(M2Crypto.EVP.hmac(passphrase, U, digest))
+        for r in range(iterations - 1):
+            actual = bytes(M2Crypto.EVP.hmac(passphrase, derived, digest))
+            derived = bytes(
+                [x ^ y for (x, y) in zip(derived, actual)]
+            )
         buff += derived
     return buff[:keylen]
 

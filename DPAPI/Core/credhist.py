@@ -21,7 +21,7 @@ import struct
 import hashlib
 from DPAPI.Core import crypto
 from DPAPI.Core import eater
-
+import binascii
 
 class RPC_SID(eater.DataStruct):
     """Represents a RPC_SID structure. See MSDN for documentation"""
@@ -34,7 +34,7 @@ class RPC_SID(eater.DataStruct):
     def parse(self, data):
         self.version = data.eat("B")
         n = data.eat("B")
-        self.idAuth = struct.unpack(">Q", "\0\0" + data.eat("6s"))[0]
+        self.idAuth = struct.unpack(">Q", b"\0\0" + data.eat("6s"))[0]
         self.subAuth = data.eat("%dL" % n)
 
     def __str__(self):
@@ -72,9 +72,9 @@ class CredSystem(eater.DataStruct):
     def __repr__(self):
         s = ["DPAPI_SYSTEM:"]
         if self.user is not None:
-            s.append("\tUser Credential   : %s" % self.user.encode('hex'))
+            s.append("\tUser Credential   : %s" % binascii.hexlify(self.user))
         if self.machine is not None:
-            s.append("\tMachine Credential: %s" % self.machine.encode('hex'))
+            s.append("\tMachine Credential: %s" % binascii.hexlify(self.machine))
         return "\n".join(s)
 
 
@@ -164,9 +164,9 @@ class CredhistEntry(eater.DataStruct):
         """
         rv = []
         if self.pwdhash is not None:
-            rv.append("%s:$dynamic_1400$%s" % (self.userSID, self.pwdhash.encode('hex')))
+            rv.append("%s:$dynamic_1400$%s" % (self.userSID, binascii.hexlify(self.pwdhash)))
         if self.ntlm is not None:
-            rv.append("%s:$NT$%s" % (self.userSID, self.ntlm.encode('hex')))
+            rv.append("%s:$NT$%s" % (self.userSID, binascii.hexlify(self.ntlm)))
         return "\n".join(rv)
 
     def __repr__(self):
@@ -179,11 +179,11 @@ class CredhistEntry(eater.DataStruct):
              "\tntHashLen  = %i" % self.ntHashLen,
              "\tuserSID    = %s" % self.userSID,
              "\tguid       = %s" % self.guid,
-             "\tiv         = %s" % self.iv.encode("hex")]
+             "\tiv         = %s" % binascii.hexlify(self.iv)]
         if self.pwdhash is not None:
-            s.append("\tpwdhash  = %s" % self.pwdhash.encode("hex"))
+            s.append("\tpwdhash  = %s" % binascii.hexlify(self.pwdhash))
         if self.ntlm is not None:
-            s.append("\tNTLM     = %s" % self.ntlm.encode("hex"))
+            s.append("\tNTLM     = %s" % binascii.hexlify(self.ntlm))
         return "\n".join(s)
 
 

@@ -20,11 +20,11 @@
 import unittest
 from DPAPI.Core import masterkey
 from DPAPI.Core import crypto
-
+import binascii
 
 class MkeyXPTest(unittest.TestCase):
     def setUp(self):
-        self.mkeyblob = ("02000000000000000000000039006600"
+        self.mkeyblob = binascii.unhexlify("02000000000000000000000039006600"
             "6200360034003400320066002d003600"
             "3200360061002d003400390038003000"
             "2d0039006300380035002d0064003200"
@@ -48,11 +48,11 @@ class MkeyXPTest(unittest.TestCase):
             "2fae9cdbf6f70c4aaab721b9a87e17d7"
             "25d9dd110f9339777df1b807c90af31a"
             "030000008c0cc86717255245ba9544f8"
-            "8914bc13").decode("hex")
+            "8914bc13")
         self.mk = masterkey.MasterKeyFile(self.mkeyblob)
         self.sid = "S-1-5-21-583907252-1547161642-682003330-1001"
         self.password = "tutu"
-        self.pwdhash = "8fd090d6121b0f67ebb58bce562bf02b3f1e6bb4".decode("hex")
+        self.pwdhash = binascii.unhexlify("8fd090d6121b0f67ebb58bce562bf02b3f1e6bb4")
 
     def test_parsing(self):
         self.assertEqual(self.mk.version, 2)
@@ -104,7 +104,7 @@ class MkeyXPTest(unittest.TestCase):
         self.mk.decryptWithHash(self.sid, self.pwdhash)
 
         self.assertTrue(self.mk.decrypted)
-        self.mk.decryptWithHash(self.sid, "")
+        self.mk.decryptWithHash(self.sid, b"")
         self.assertTrue(self.mk.decrypted)
 
     def test_unpickle_pickle(self):
@@ -134,7 +134,7 @@ class MkeyXPTest(unittest.TestCase):
 
 class MkeyWin7Test(unittest.TestCase):
     def setUp(self):
-        self.mkeyblob = ("02000000000000000000000033003900"
+        self.mkeyblob = binascii.unhexlify("02000000000000000000000033003900"
             "3800370035006300610062002d003500"
             "3000330036002d003400610062006100"
             "2d0062003900650065002d0033003100"
@@ -163,11 +163,11 @@ class MkeyWin7Test(unittest.TestCase):
             "332521b34b69e118a8db203230a74f65"
             "3c01cec9489cc288ed617fb0de0d2ad0"
             "03000000a31ddfe1cf99304093caf6eb"
-            "8b9c7b09").decode("hex")
+            "8b9c7b09")
         self.mk = masterkey.MasterKeyFile(self.mkeyblob)
         self.sid = "S-1-5-21-2421538757-1605280464-2344517820-1000"
         self.password = "fuffa"
-        self.pwdhash = "74b87ba1e12734f71fe4737990e2c420bd145bf4".decode("hex")
+        self.pwdhash = binascii.unhexlify("74b87ba1e12734f71fe4737990e2c420bd145bf4")
 
     def test_parsing(self):
         self.assertEqual(self.mk.version, 2)
@@ -206,7 +206,7 @@ class MkeyWin7Test(unittest.TestCase):
 
 class MkeyWin81Test(unittest.TestCase):
     def setUp(self):
-        self.mkeyblob = ("02000000000000000000000062006100"
+        self.mkeyblob = binascii.unhexlify("02000000000000000000000062006100"
             "3700360062003300330066002d003400"
             "6200390037002d003400650039003700"
             "2d0039003600300033002d0037003800"
@@ -235,11 +235,11 @@ class MkeyWin81Test(unittest.TestCase):
             "20711e62f0b685c7cb1300f21b0a22bc"
             "a1f24852ac9292f475d56c936a1792c6"
             "03000000c70c2de2b511dc418f40ed80"
-            "4bbf6a17").decode("hex")
+            "4bbf6a17")
         self.mk = masterkey.MasterKeyFile(self.mkeyblob)
         self.sid = "S-1-5-21-2128076315-4144300488-3078399761-1001"
         self.password = "fuffa"
-        self.pwdhash = "74b87ba1e12734f71fe4737990e2c420bd145bf4".decode("hex")
+        self.pwdhash = binascii.unhexlify("74b87ba1e12734f71fe4737990e2c420bd145bf4")
 
     def test_parsing(self):
         self.assertEqual(self.mk.version, 2)

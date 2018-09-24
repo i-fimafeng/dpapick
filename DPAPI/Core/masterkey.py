@@ -21,7 +21,8 @@ import hashlib
 import os
 import re
 from collections import defaultdict
-import cPickle
+import pickle
+import binascii
 
 from DPAPI.Core import eater
 from DPAPI.Core import credhist
@@ -129,19 +130,19 @@ class MasterKey(eater.DataStruct):
         if self.rounds is not None:
             s.append("\trounds       = %i" % self.rounds)
         if self.iv is not None:
-            s.append("\tIV           = %s" % self.iv.encode("hex"))
+            s.append("\tIV           = %s" % binascii.hexlify(self.iv))
         if self.key is not None:
-            s.append("\tkey          = %s" % self.key.encode("hex"))
+            s.append("\tkey          = %s" % binascii.hexlify(self.key))
         if self.hmacSalt is not None:
-            s.append("\thmacSalt     = %s" % self.hmacSalt.encode("hex"))
+            s.append("\thmacSalt     = %s" % binascii.hexlify(self.hmacSalt))
         if self.hmac is not None:
-            s.append("\thmac         = %s" % self.hmac.encode("hex"))
+            s.append("\thmac         = %s" % binascii.hexlify(self.hmac))
         if self.hmacComputed is not None:
-            s.append("\thmacComputed = %s" % self.hmacComputed.encode("hex"))
+            s.append("\thmacComputed = %s" % binascii.hexlify(self.hmacComputed))
         if self.key_hash is not None:
-            s.append("\tkey hash     = %s" % self.key_hash.encode("hex"))
+            s.append("\tkey hash     = %s" % binascii.hexlify(self.key_hash))
         if self.ciphertext is not None:
-            s.append("\tciphertext   = %s" % self.ciphertext.encode("hex"))
+            s.append("\tciphertext   = %s" % binascii.hexlify(self.ciphertext))
         return "\n".join(s)
 
 
@@ -386,9 +387,9 @@ class MasterKeyPool(object):
 
     def pickle(self, filename=None):
         if filename is not None:
-            cPickle.dump(self, filename, 2)
+            pickle.dump(self, filename, 2)
         else:
-            return cPickle.dumps(self, 2)
+            return pickle.dumps(self, 2)
 
     def __getstate__(self):
         d = dict(self.__dict__)
@@ -404,9 +405,9 @@ class MasterKeyPool(object):
     @staticmethod
     def unpickle(data=None, filename=None):
         if data is not None:
-            return cPickle.loads(data)
+            return pickle.loads(data)
         if filename is not None:
-            return cPickle.load(filename)
+            return pickle.load(filename)
         raise ValueError("must provide either data or filename argument")
 
     def try_credential_hash(self, userSID, pwdhash):
